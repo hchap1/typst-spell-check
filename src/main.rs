@@ -1,5 +1,5 @@
-use std::fs::read_to_string;
-use std::env::args;
+use std::fs::{create_dir_all, read_to_string};
+use std::env::{var, args};
 use regex::Regex;
 use std::collections::HashSet;
 use reqwest::blocking::get;
@@ -91,7 +91,20 @@ fn pattern_println(input: &String, patterns: &Vec<String>) {
 }
 
 fn main() {
-    let dictpath = Path::new("dictionary.txt");
+    let appdata = match var("APPDATA") {
+        Ok(path) => {
+            path
+        }
+        Err(_) => {
+            panic!("No APPDATA ENV-VAR!");
+        }
+    };
+    let dictpath = Path::new(&appdata).join("typst-spell-check/dictionary.txt");
+    if let Some(parent) = dictpath.parent() {
+        if let Err(e) = create_dir_all(parent) {
+            panic!("Failed to create directory: {}", e);
+        }
+    }
     match dictpath.exists() {
         true => { }
         false => {
@@ -129,6 +142,7 @@ fn main() {
                     doc_string = remove_double_spaces(&doc_string);
                     let fmt_document = doc_string.split(" ").map(|x| x.to_string()).collect::<Vec<String>>();
                     let mut mispelt: Vec<String> = vec![];
+                    println!("CHECK: {}", dictionary.check(&String::from("on")));
                     for word in &fmt_document {
                         match dictionary.check(word) {
                             true => {}
