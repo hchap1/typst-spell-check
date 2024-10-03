@@ -13,7 +13,7 @@ struct Dictionary {
 }
 
 impl Dictionary {
-    fn new(filepath: String) -> Result<Dictionary, String> {
+    fn new(filepath: &Path) -> Result<Dictionary, String> {
         match read_to_string(&filepath) {
             Ok(raw) => {
                 let mut dictionary: Dictionary = Dictionary { dict_words: HashSet::new() };
@@ -24,7 +24,7 @@ impl Dictionary {
                 Ok(dictionary)
             }
             Err(_) => {
-                Err(format!("Could not access {filepath}"))
+                Err(format!("Could not access dictionary.txt in APPDATA."))
             }
         }
     }
@@ -35,7 +35,7 @@ impl Dictionary {
 }
 
 fn remove_equations(input: &str) -> String {
-    let re = Regex::new(r"\$.*?\$").unwrap();
+    let re = Regex::new(r"\\[^$]([^\$]*)\$").unwrap();
     re.replace_all(input, "").to_string()
 }
 
@@ -114,7 +114,7 @@ fn main() {
                 Ok(response) => {
                     println!("Pulling down dictionary.txt.");
                     if response.status().is_success() {
-                        let mut file = File::create("dictionary.txt").unwrap();
+                        let mut file = File::create(&dictpath).unwrap();
                         let content = response.bytes().unwrap();
                         let _ = file.write_all(&content);
                         println!("Succesfully pulled down dictionary.txt!");
@@ -126,7 +126,7 @@ fn main() {
             }
         }
     }
-    let dictionary: Dictionary = Dictionary::new(String::from("dictionary.txt")).unwrap();
+    let dictionary: Dictionary = Dictionary::new(&dictpath).unwrap();
     let mut args = args();
     match args.len() {
         2 => {
@@ -142,7 +142,6 @@ fn main() {
                     doc_string = remove_double_spaces(&doc_string);
                     let fmt_document = doc_string.split(" ").map(|x| x.to_string()).collect::<Vec<String>>();
                     let mut mispelt: Vec<String> = vec![];
-                    println!("CHECK: {}", dictionary.check(&String::from("on")));
                     for word in &fmt_document {
                         match dictionary.check(word) {
                             true => {}
