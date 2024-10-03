@@ -35,7 +35,8 @@ impl Dictionary {
 }
 
 fn remove_equations(input: &str) -> String {
-    let re = Regex::new(r"\\[^$]([^\$]*)\$").unwrap();
+    // let re = Regex::new(r"\\[^$]([^\$]*)\$").unwrap(); <- Non-functional, has edge cases.
+    let re = Regex::new(r"\$.*\$").unwrap();
     re.replace_all(input, "").to_string()
 }
 
@@ -88,6 +89,25 @@ fn pattern_println(input: &String, patterns: &Vec<String>) {
 
     stdout.reset().unwrap();
     print!("\n");
+}
+
+fn match_lines(text_lines: Vec<String>, patterns: Vec<String>) -> Vec<Vec<String>> {
+    let regexes: Vec<Regex> = patterns
+        .iter()
+        .map(|pattern| Regex::new(pattern).unwrap())
+        .collect();
+    let mut result: Vec<Vec<String>> = Vec::new();
+
+    for line in text_lines {
+        let mut matched_patterns = Vec::new();
+        for regex in &regexes {
+            if regex.is_match(&line) {
+                matched_patterns.push(regex.as_str().to_string());
+            }
+        }
+        result.push(matched_patterns);
+    }
+    result
 }
 
 fn main() {
@@ -156,6 +176,43 @@ fn main() {
                 }
                 Err(_) => {
                     eprintln!("Could not read '{filepath}'", );
+                }
+            }
+        }
+        3 => {
+            let filepath: String = args.nth(1).unwrap();
+            match read_to_string(&filepath) {
+                Ok(raw) => {
+                    if args.nth(0).unwrap() == String::from("--report") {
+                        let document: Vec<String> = raw.lines().map(|x| x.to_string()).collect::<Vec<String>>();
+                        let mut doc_string: String = remove_parenthesis(&document.join(" "));
+                        doc_string = remove_equations(&doc_string);
+                        doc_string = remove_parenthesis(&doc_string);
+                        doc_string = remove_functions(&doc_string);
+                        doc_string = remove_punctuation(&doc_string);
+                        doc_string = remove_double_spaces(&doc_string);
+                        let fmt_document = doc_string.split(" ").map(|x| x.to_string()).collect::<Vec<String>>();
+                        let mut mispelt: Vec<String> = vec![];
+                        for word in &fmt_document {
+                            match dictionary.check(word) {
+                                true => {}
+                                false => {
+                                    if word != "" { mispelt.push(word.clone()); }
+                                }
+                            }
+                        }
+                        let errors: Vec<Vec<String>> = match_lines(document, mispelt);
+                        for (idx, error) in errors.into_iter().enumerate() {
+                            if error.len() != 0 {
+                                println!("Line {idx}: {}", error.join(", "));
+                            }
+                        }
+                    } else {
+                        eprintln!("Could not read '{filepath}'", );
+                    }
+                }
+                Err(_) => {
+
                 }
             }
         }
