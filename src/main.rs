@@ -202,6 +202,10 @@ fn main() {
                             }
                         }
                         let errors: Vec<Vec<String>> = match_lines(document, mispelt);
+                        println!("Checked {} words.", fmt_document.len());
+                        if errors.len() == 0 {
+                            println!("All clear! Manually check text in functions and equations.");
+                        }
                         for (idx, error) in errors.into_iter().enumerate() {
                             if error.len() != 0 {
                                 println!("Line {idx}: {}", error.join(", "));
